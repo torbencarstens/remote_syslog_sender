@@ -13,6 +13,18 @@ module RemoteSyslogLogger
       @ssl_method      = options[:ssl_method] || 'TLSv1_2'
       @ca_file         = options[:ca_file]
       @verify_mode     = options[:verify_mode]
+      if [:SOL_SOCKET, :SO_KEEPALIVE, :IPPROTO_TCP, :TCP_KEEPIDLE].all? {|c| Socket.const_defined? c}
+        @keep_alive      = options[:keep_alive]
+      end
+      if Socket.const_defined?(:TCP_KEEPIDLE)
+        @keep_alive_idle = options[:keep_alive_idle]
+      end
+      if Socket.const_defined?(:TCP_KEEPCNT)
+        @keep_alive_cnt  = options[:keep_alive_cnt]
+      end
+      if Socket.const_defined?(:TCP_KEEPINTVL)
+        @keep_alive_intvl = options[:keep_alive_intvl]
+      end
       connect
     end
 
@@ -20,6 +32,12 @@ module RemoteSyslogLogger
 
     def connect
       sock = TCPSocket.new(@remote_hostname, @remote_port)
+      if @keep_alive
+        sock.setsockopt(Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, true)
+        sock.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_KEEPIDLE, @keep_alive_idle) if @keep_alive_idle
+        sock.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_KEEPCNT, @keep_alive_cnt) if @keep_alive_cnt
+        sock.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_KEEPINTVL, @keep_alive_intvl) if @keep_alive_intvl
+      end
       if @tls
         require 'openssl'
         context = OpenSSL::SSL::SSLContext.new(@ssl_method)
