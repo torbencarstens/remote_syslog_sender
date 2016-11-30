@@ -59,9 +59,8 @@ module RemoteSyslogLogger
 
       begin
         @socket.puts(payload)
-      rescue => e
+      rescue
         if retry_count < retry_limit
-          $stderr.puts "#{e.class} error: retry after #{sleep_time} sec (#{retry_count} times)"
           sleep sleep_time
           retry_count += 1
           sleep_time *= 2
