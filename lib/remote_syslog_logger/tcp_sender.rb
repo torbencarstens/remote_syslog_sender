@@ -4,6 +4,8 @@ require 'remote_syslog_logger/sender'
 
 module RemoteSyslogLogger
   class TcpSender < Sender
+    class NonBlockingTimeout < StandardError; end
+
     def initialize(remote_hostname, remote_port, options = {})
       super
       @tls             = options[:tls]
@@ -13,6 +15,7 @@ module RemoteSyslogLogger
       @ssl_method      = options[:ssl_method] || 'TLSv1_2'
       @ca_file         = options[:ca_file]
       @verify_mode     = options[:verify_mode]
+      @timeout         = options[:timeout]
       if [:SOL_SOCKET, :SO_KEEPALIVE, :IPPROTO_TCP, :TCP_KEEPIDLE].all? {|c| Socket.const_defined? c}
         @keep_alive      = options[:keep_alive]
       end
@@ -53,22 +56,85 @@ module RemoteSyslogLogger
     end
 
     def send_msg(payload)
+      if @timeout && @timeout >= 0
+        send_msg_nonblock(payload)
+      else
+        send_msg_block(payload)
+      end
+    end
+
+    def send_msg_block(payload)
       retry_limit = @retry_limit.to_i
       retry_count = 0
       sleep_time = 0.5
 
-      begin
-        @socket.puts(payload)
-      rescue
-        if retry_count < retry_limit
-          sleep sleep_time
-          retry_count += 1
-          sleep_time *= 2
-          connect
-          retry
-        else
-          raise
+      payload << "\n"
+      payload.force_encoding(Encoding::ASCII_8BIT)
+      payload_size = payload.bytesize
+
+      until payload_size <= 0
+        begin
+          result = @socket.write(payload)
+          payload_size -= result
+          payload.slice!(0, result) if payload_size > 0
+        rescue
+          if retry_count < retry_limit
+            sleep sleep_time
+            retry_count += 1
+            sleep_time *= 2
+            connect
+            retry
+          else
+            raise
+          end
         end
+      end
+    end
+
+    def send_msg_nonblock(payload)
+      payload << "\n"
+      payload.force_encoding(Encoding::ASCII_8BIT)
+      payload_size = payload.bytesize
+
+      until payload_size <= 0
+        start = get_time
+        begin
+          result = @socket.write_nonblock(payload)
+          payload_size -= result
+          payload.slice!(0, result) if payload_size > 0
+        rescue IO::WaitWritable
+          timeout_wait = @timeout - (get_time - start)
+          raise NonBlockingTimeout unless IO.select(nil, [@socket], nil, timeout_wait)
+          retry
+        rescue SystemCallError, IOError
+          if (get_time - start) < @timeout
+            connect
+            retry
+          else
+            raise
+          end
+        end
+      end
+    end
+
+    private
+
+    POSIX_CLOCK =
+      if defined?(Process::CLOCK_MONOTONIC_COARSE)
+        Process::CLOCK_MONOTONIC_COARSE
+      elsif defined?(Process::CLOCK_MONOTONIC)
+        Process::CLOCK_MONOTONIC_COARSE
+      elsif defined?(Process::CLOCK_REALTIME_COARSE)
+        Process::CLOCK_REALTIME_COARSE
+      elsif defined?(Process::CLOCK_REALTIME)
+        Process::CLOCK_REALTIME
+      end
+
+    def get_time
+      if POSIX_CLOCK
+        Process.clock_gettime(POSIX_CLOCK)
+      else
+        Time.now.to_f
       end
     end
   end
