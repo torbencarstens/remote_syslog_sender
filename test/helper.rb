@@ -7,6 +7,6 @@ unless ENV['BUNDLE_GEMFILE']
   Bundler.require
 end
 
-require 'remote_syslog_logger'
+require 'remote_syslog_sender'
 
 require 'test/unit'

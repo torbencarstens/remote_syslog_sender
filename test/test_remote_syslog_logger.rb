@@ -1,6 +1,6 @@
 require File.expand_path('../helper', __FILE__)
 
-class TestRemoteSyslogLogger < Test::Unit::TestCase
+class TestRemoteSyslogSender < Test::Unit::TestCase
   def setup
     @server_port = rand(50000) + 1024
     @socket = UDPSocket.new
@@ -19,43 +19,43 @@ class TestRemoteSyslogLogger < Test::Unit::TestCase
     @tcp_server.close
   end
 
-  def test_logger
-    @logger = RemoteSyslogLogger.new('127.0.0.1', @server_port)
-    @logger.write "This is a test"
+  def test_sender
+    @sender = RemoteSyslogSender.new('127.0.0.1', @server_port)
+    @sender.write "This is a test"
 
     message, _ = *@socket.recvfrom(1024)
     assert_match(/This is a test/, message)
   end
 
-  def test_logger_long_payload
-    @logger = RemoteSyslogLogger.new('127.0.0.1', @server_port, packet_size: 10240)
-    @logger.write "abcdefgh" * 1000
+  def test_sender_long_payload
+    @sender = RemoteSyslogSender.new('127.0.0.1', @server_port, packet_size: 10240)
+    @sender.write "abcdefgh" * 1000
 
     message, _ = *@socket.recvfrom(10240)
     assert_match(/#{"abcdefgh" * 1000}/, message)
   end
 
-  def test_logger_tcp
-    @logger = RemoteSyslogLogger.new('127.0.0.1', @tcp_server_port, protocol: :tcp)
-    @logger.write "This is a test"
+  def test_sender_tcp
+    @sender = RemoteSyslogSender.new('127.0.0.1', @tcp_server_port, protocol: :tcp)
+    @sender.write "This is a test"
     sock = @tcp_server_wait_thread.value
 
     message, _ = *sock.recvfrom(1024)
     assert_match(/This is a test/, message)
   end
 
-  def test_logger_tcp_nonblock
-    @logger = RemoteSyslogLogger.new('127.0.0.1', @tcp_server_port, protocol: :tcp, timeout: 20)
-    @logger.write "This is a test"
+  def test_sender_tcp_nonblock
+    @sender = RemoteSyslogSender.new('127.0.0.1', @tcp_server_port, protocol: :tcp, timeout: 20)
+    @sender.write "This is a test"
     sock = @tcp_server_wait_thread.value
 
     message, _ = *sock.recvfrom(1024)
     assert_match(/This is a test/, message)
   end
 
-  def test_logger_multiline
-    @logger = RemoteSyslogLogger.new('127.0.0.1', @server_port)
-    @logger.write "This is a test\nThis is the second line"
+  def test_sender_multiline
+    @sender = RemoteSyslogSender.new('127.0.0.1', @server_port)
+    @sender.write "This is a test\nThis is the second line"
 
     message, _ = *@socket.recvfrom(1024)
     assert_match(/This is a test/, message)

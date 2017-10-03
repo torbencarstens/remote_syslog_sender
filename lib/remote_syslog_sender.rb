@@ -1,8 +1,8 @@
 
-require 'remote_syslog_logger/udp_sender'
-require 'remote_syslog_logger/tcp_sender'
+require 'remote_syslog_sender/udp_sender'
+require 'remote_syslog_sender/tcp_sender'
 
-module RemoteSyslogLogger
+module RemoteSyslogSender
   VERSION = '1.0.3'
 
   def self.new(remote_hostname, remote_port, options = {})

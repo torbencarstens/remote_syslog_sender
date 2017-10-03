@@ -1,7 +1,7 @@
 require 'socket'
 require 'syslog_protocol'
 
-module RemoteSyslogLogger
+module RemoteSyslogSender
   class Sender
     # To suppress initialize warning
     class Packet < SyslogProtocol::Packet

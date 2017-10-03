@@ -1,8 +1,8 @@
 require 'socket'
 require 'syslog_protocol'
-require 'remote_syslog_logger/sender'
+require 'remote_syslog_sender/sender'
 
-module RemoteSyslogLogger
+module RemoteSyslogSender
   class UdpSender < Sender
     def initialize(remote_hostname, remote_port, options = {})
       super
