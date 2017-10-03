@@ -7,6 +7,7 @@ module RemoteSyslogLogger
       @remote_hostname = remote_hostname
       @remote_port     = remote_port
       @whinyerrors     = options[:whinyerrors]
+      @packet_size     = options[:packet_size] || 1024
 
       @packet = SyslogProtocol::Packet.new
 
@@ -27,7 +28,7 @@ module RemoteSyslogLogger
           next if line =~ /^\s*$/
           packet = @packet.dup
           packet.content = line
-          send_msg(packet.assemble)
+          send_msg(packet.assemble(@packet_size))
         rescue
           $stderr.puts "#{self.class} error: #{$!.class}: #{$!}\nOriginal message: #{line}"
           raise if @whinyerrors
