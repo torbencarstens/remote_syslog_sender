@@ -21,7 +21,7 @@ class TestRemoteSyslogLogger < Test::Unit::TestCase
 
   def test_logger
     @logger = RemoteSyslogLogger.new('127.0.0.1', @server_port)
-    @logger.info "This is a test"
+    @logger.write "This is a test"
 
     message, _ = *@socket.recvfrom(1024)
     assert_match(/This is a test/, message)
@@ -29,7 +29,7 @@ class TestRemoteSyslogLogger < Test::Unit::TestCase
 
   def test_logger_long_payload
     @logger = RemoteSyslogLogger.new('127.0.0.1', @server_port, packet_size: 10240)
-    @logger.info "abcdefgh" * 1000
+    @logger.write "abcdefgh" * 1000
 
     message, _ = *@socket.recvfrom(10240)
     assert_match(/#{"abcdefgh" * 1000}/, message)
@@ -37,7 +37,7 @@ class TestRemoteSyslogLogger < Test::Unit::TestCase
 
   def test_logger_tcp
     @logger = RemoteSyslogLogger.new('127.0.0.1', @tcp_server_port, protocol: :tcp)
-    @logger.info "This is a test"
+    @logger.write "This is a test"
     sock = @tcp_server_wait_thread.value
 
     message, _ = *sock.recvfrom(1024)
@@ -46,7 +46,7 @@ class TestRemoteSyslogLogger < Test::Unit::TestCase
 
   def test_logger_tcp_nonblock
     @logger = RemoteSyslogLogger.new('127.0.0.1', @tcp_server_port, protocol: :tcp, timeout: 20)
-    @logger.info "This is a test"
+    @logger.write "This is a test"
     sock = @tcp_server_wait_thread.value
 
     message, _ = *sock.recvfrom(1024)
@@ -55,7 +55,7 @@ class TestRemoteSyslogLogger < Test::Unit::TestCase
 
   def test_logger_multiline
     @logger = RemoteSyslogLogger.new('127.0.0.1', @server_port)
-    @logger.info "This is a test\nThis is the second line"
+    @logger.write "This is a test\nThis is the second line"
 
     message, _ = *@socket.recvfrom(1024)
     assert_match(/This is a test/, message)
