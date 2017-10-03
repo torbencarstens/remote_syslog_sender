@@ -100,8 +100,6 @@ module RemoteSyslogLogger
       end
     end
 
-    private
-
     POSIX_CLOCK =
       if defined?(Process::CLOCK_MONOTONIC_COARSE)
         Process::CLOCK_MONOTONIC_COARSE
