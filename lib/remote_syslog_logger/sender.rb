@@ -3,13 +3,21 @@ require 'syslog_protocol'
 
 module RemoteSyslogLogger
   class Sender
+    # To suppress initialize warning
+    class Packet < SyslogProtocol::Packet
+      def initialize(*)
+        super
+        @time = nil
+      end
+    end
+
     def initialize(remote_hostname, remote_port, options = {})
       @remote_hostname = remote_hostname
       @remote_port     = remote_port
       @whinyerrors     = options[:whinyerrors]
       @packet_size     = options[:packet_size] || 1024
 
-      @packet = SyslogProtocol::Packet.new
+      @packet = Packet.new
 
       local_hostname   = options[:local_hostname] || (Socket.gethostname rescue `hostname`.chomp)
       local_hostname   = 'localhost' if local_hostname.nil? || local_hostname.empty?
