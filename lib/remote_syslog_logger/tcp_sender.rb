@@ -10,12 +10,16 @@ module RemoteSyslogLogger
       super
       @tls             = options[:tls]
       @retry_limit     = options[:retry_limit] || 3
+      @retry_interval  = options[:retry_interval] || 0.5
       @remote_hostname = remote_hostname
       @remote_port     = remote_port
       @ssl_method      = options[:ssl_method] || 'TLSv1_2'
       @ca_file         = options[:ca_file]
       @verify_mode     = options[:verify_mode]
       @timeout         = options[:timeout]
+      @timeout_exception   = !!options[:timeout_exception]
+      @exponential_backoff = !!options[:exponential_backoff]
+
       if [:SOL_SOCKET, :SO_KEEPALIVE, :IPPROTO_TCP, :TCP_KEEPIDLE].all? {|c| Socket.const_defined? c}
         @keep_alive      = options[:keep_alive]
       end
@@ -65,8 +69,8 @@ module RemoteSyslogLogger
 
     def send_msg_block(payload)
       retry_limit = @retry_limit.to_i
+      retry_interval = @retry_interval.to_f
       retry_count = 0
-      sleep_time = 0.5
 
       payload << "\n"
       payload.force_encoding(Encoding::ASCII_8BIT)
@@ -79,9 +83,9 @@ module RemoteSyslogLogger
           payload.slice!(0, result) if payload_size > 0
         rescue
           if retry_count < retry_limit
-            sleep sleep_time
+            sleep retry_interval
             retry_count += 1
-            sleep_time *= 2
+            retry_interval *= 2 if @exponential_backoff
             connect
             retry
           else
@@ -92,6 +96,10 @@ module RemoteSyslogLogger
     end
 
     def send_msg_nonblock(payload)
+      retry_limit = @retry_limit.to_i
+      retry_interval = @retry_interval.to_f
+      retry_count = 0
+
       payload << "\n"
       payload.force_encoding(Encoding::ASCII_8BIT)
       payload_size = payload.bytesize
@@ -104,10 +112,15 @@ module RemoteSyslogLogger
           payload.slice!(0, result) if payload_size > 0
         rescue IO::WaitWritable
           timeout_wait = @timeout - (get_time - start)
-          raise NonBlockingTimeout unless IO.select(nil, [@socket], nil, timeout_wait)
-          retry
-        rescue SystemCallError, IOError
-          if (get_time - start) < @timeout
+          retry if IO.select(nil, [@socket], nil, timeout_wait)
+
+          raise NonBlockingTimeout if @timeout_exception
+          break
+        rescue
+          if retry_count < retry_limit
+            sleep retry_interval
+            retry_count += 1
+            retry_interval *= 2 if @exponential_backoff
             connect
             retry
           else
