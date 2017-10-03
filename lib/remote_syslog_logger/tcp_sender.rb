@@ -61,41 +61,11 @@ module RemoteSyslogLogger
 
     def send_msg(payload)
       if @timeout && @timeout >= 0
-        send_msg_nonblock(payload)
+        method = :write_nonblock
       else
-        send_msg_block(payload)
+        method = :write
       end
-    end
 
-    def send_msg_block(payload)
-      retry_limit = @retry_limit.to_i
-      retry_interval = @retry_interval.to_f
-      retry_count = 0
-
-      payload << "\n"
-      payload.force_encoding(Encoding::ASCII_8BIT)
-      payload_size = payload.bytesize
-
-      until payload_size <= 0
-        begin
-          result = @socket.write(payload)
-          payload_size -= result
-          payload.slice!(0, result) if payload_size > 0
-        rescue
-          if retry_count < retry_limit
-            sleep retry_interval
-            retry_count += 1
-            retry_interval *= 2 if @exponential_backoff
-            connect
-            retry
-          else
-            raise
-          end
-        end
-      end
-    end
-
-    def send_msg_nonblock(payload)
       retry_limit = @retry_limit.to_i
       retry_interval = @retry_interval.to_f
       retry_count = 0
@@ -107,7 +77,7 @@ module RemoteSyslogLogger
       until payload_size <= 0
         start = get_time
         begin
-          result = @socket.write_nonblock(payload)
+          result = @socket.__send__(method, payload)
           payload_size -= result
           payload.slice!(0, result) if payload_size > 0
         rescue IO::WaitWritable
