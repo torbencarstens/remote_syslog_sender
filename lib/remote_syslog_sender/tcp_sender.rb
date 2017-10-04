@@ -16,9 +16,10 @@ module RemoteSyslogSender
       @ssl_method      = options[:ssl_method] || 'TLSv1_2'
       @ca_file         = options[:ca_file]
       @verify_mode     = options[:verify_mode]
-      @timeout         = options[:timeout]
+      @timeout         = options[:timeout] || 600
       @timeout_exception   = !!options[:timeout_exception]
       @exponential_backoff = !!options[:exponential_backoff]
+      @connect_mutex = Mutex.new
 
       if [:SOL_SOCKET, :SO_KEEPALIVE, :IPPROTO_TCP, :TCP_KEEPIDLE].all? {|c| Socket.const_defined? c}
         @keep_alive      = options[:keep_alive]
@@ -44,39 +45,40 @@ module RemoteSyslogSender
 
     def connect
       connect_retry_count = 0
-      connect_retry_limit = 2
+      connect_retry_limit = 3
       connect_retry_interval = 1
-      begin
-        sock = TCPSocket.new(@remote_hostname, @remote_port)
+      @connect_mutex.synchronize do
+        begin
+          @tcp_socket = TCPSocket.new(@remote_hostname, @remote_port)
 
-        if @keep_alive
-          sock.setsockopt(Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, true)
-          sock.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_KEEPIDLE, @keep_alive_idle) if @keep_alive_idle
-          sock.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_KEEPCNT, @keep_alive_cnt) if @keep_alive_cnt
-          sock.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_KEEPINTVL, @keep_alive_intvl) if @keep_alive_intvl
-        end
-        if @tls
-          require 'openssl'
-          context = OpenSSL::SSL::SSLContext.new(@ssl_method)
-          context.ca_file = @ca_file if @ca_file
-          context.verify_mode = @verify_mode if @verify_mode
+          if @keep_alive
+            @tcp_socket.setsockopt(Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, true)
+            @tcp_socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_KEEPIDLE, @keep_alive_idle) if @keep_alive_idle
+            @tcp_socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_KEEPCNT, @keep_alive_cnt) if @keep_alive_cnt
+            @tcp_socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_KEEPINTVL, @keep_alive_intvl) if @keep_alive_intvl
+          end
+          if @tls
+            require 'openssl'
+            context = OpenSSL::SSL::SSLContext.new(@ssl_method)
+            context.ca_file = @ca_file if @ca_file
+            context.verify_mode = @verify_mode if @verify_mode
 
-          @tcp_socket = sock
-          @socket = OpenSSL::SSL::SSLSocket.new(sock, context)
-          @socket.connect
-          @socket.post_connection_check(@remote_hostname)
-          raise "verification error" if @socket.verify_result != OpenSSL::X509::V_OK
-        else
-          @socket = sock
-        end
-      rescue
-        close
-        if connect_retry_count < connect_retry_limit
-          sleep connect_retry_interval
-          connect_retry_count += 1
-          retry
-        else
-          raise
+            @socket = OpenSSL::SSL::SSLSocket.new(@tcp_socket, context)
+            @socket.connect
+            @socket.post_connection_check(@remote_hostname)
+            raise "verification error" if @socket.verify_result != OpenSSL::X509::V_OK
+          else
+            @socket = @tcp_socket
+          end
+        rescue
+          close
+          if connect_retry_count < connect_retry_limit
+            sleep connect_retry_interval
+            connect_retry_count += 1
+            retry
+          else
+            raise
+          end
         end
       end
     end
