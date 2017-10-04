@@ -35,27 +35,50 @@ module RemoteSyslogSender
       connect
     end
 
+    def close
+      @socket.close if @socket
+      @tcp_socket.close if @tcp_socket
+    end
+
     private
 
     def connect
-      sock = TCPSocket.new(@remote_hostname, @remote_port)
-      if @keep_alive
-        sock.setsockopt(Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, true)
-        sock.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_KEEPIDLE, @keep_alive_idle) if @keep_alive_idle
-        sock.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_KEEPCNT, @keep_alive_cnt) if @keep_alive_cnt
-        sock.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_KEEPINTVL, @keep_alive_intvl) if @keep_alive_intvl
-      end
-      if @tls
-        require 'openssl'
-        context = OpenSSL::SSL::SSLContext.new(@ssl_method)
-        context.ca_file = @ca_file if @ca_file
-        context.verify_mode = @verify_mode if @verify_mode
-        @socket = OpenSSL::SSL::SSLSocket.new(sock, context)
-        @socket.connect
-        @socket.post_connection_check(@remote_hostname)
-        raise "verification error" if @socket.verify_result != OpenSSL::X509::V_OK
-      else
-        @socket = sock
+      connect_retry_count = 0
+      connect_retry_limit = 2
+      connect_retry_interval = 1
+      begin
+        sock = TCPSocket.new(@remote_hostname, @remote_port)
+
+        if @keep_alive
+          sock.setsockopt(Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, true)
+          sock.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_KEEPIDLE, @keep_alive_idle) if @keep_alive_idle
+          sock.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_KEEPCNT, @keep_alive_cnt) if @keep_alive_cnt
+          sock.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_KEEPINTVL, @keep_alive_intvl) if @keep_alive_intvl
+        end
+        if @tls
+          require 'openssl'
+          context = OpenSSL::SSL::SSLContext.new(@ssl_method)
+          context.ca_file = @ca_file if @ca_file
+          context.verify_mode = @verify_mode if @verify_mode
+
+          @tcp_socket = sock
+          @socket = OpenSSL::SSL::SSLSocket.new(sock, context)
+          @socket.connect
+          @socket.post_connection_check(@remote_hostname)
+          raise "test" if connect_retry_count < 1
+          raise "verification error" if @socket.verify_result != OpenSSL::X509::V_OK
+        else
+          @socket = sock
+        end
+      rescue => e
+        close
+        if connect_retry_count < connect_retry_limit
+          sleep connect_retry_interval
+          connect_retry_count += 1
+          retry
+        else
+          raise
+        end
       end
     end
 
