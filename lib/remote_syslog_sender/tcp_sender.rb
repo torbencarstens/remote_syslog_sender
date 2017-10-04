@@ -102,6 +102,12 @@ module RemoteSyslogSender
           result = @socket.__send__(method, payload)
           payload_size -= result
           payload.slice!(0, result) if payload_size > 0
+        rescue IO::WaitReadable
+          timeout_wait = @timeout - (get_time - start)
+          retry if IO.select([@socket], nil, nil, timeout_wait)
+
+          raise NonBlockingTimeout if @timeout_exception
+          break
         rescue IO::WaitWritable
           timeout_wait = @timeout - (get_time - start)
           retry if IO.select(nil, [@socket], nil, timeout_wait)
