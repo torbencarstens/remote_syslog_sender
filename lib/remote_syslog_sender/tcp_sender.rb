@@ -104,7 +104,7 @@ module RemoteSyslogSender
       if defined?(Process::CLOCK_MONOTONIC_COARSE)
         Process::CLOCK_MONOTONIC_COARSE
       elsif defined?(Process::CLOCK_MONOTONIC)
-        Process::CLOCK_MONOTONIC_COARSE
+        Process::CLOCK_MONOTONIC
       elsif defined?(Process::CLOCK_REALTIME_COARSE)
         Process::CLOCK_REALTIME_COARSE
       elsif defined?(Process::CLOCK_REALTIME)
