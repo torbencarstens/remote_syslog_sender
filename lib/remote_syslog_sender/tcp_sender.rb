@@ -19,7 +19,9 @@ module RemoteSyslogSender
       @timeout         = options[:timeout] || 600
       @timeout_exception   = !!options[:timeout_exception]
       @exponential_backoff = !!options[:exponential_backoff]
+
       @connect_mutex = Mutex.new
+      @tcp_socket = nil
 
       if [:SOL_SOCKET, :SO_KEEPALIVE, :IPPROTO_TCP, :TCP_KEEPIDLE].all? {|c| Socket.const_defined? c}
         @keep_alive      = options[:keep_alive]
@@ -49,6 +51,8 @@ module RemoteSyslogSender
       connect_retry_interval = 1
       @connect_mutex.synchronize do
         begin
+          close
+
           @tcp_socket = TCPSocket.new(@remote_hostname, @remote_port)
 
           if @keep_alive
@@ -71,7 +75,6 @@ module RemoteSyslogSender
             @socket = @tcp_socket
           end
         rescue
-          close
           if connect_retry_count < connect_retry_limit
             sleep connect_retry_interval
             connect_retry_count += 1
