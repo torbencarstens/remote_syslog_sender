@@ -70,7 +70,7 @@ module RemoteSyslogSender
         else
           @socket = sock
         end
-      rescue => e
+      rescue
         close
         if connect_retry_count < connect_retry_limit
           sleep connect_retry_interval
