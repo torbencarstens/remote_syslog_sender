@@ -20,7 +20,7 @@ module RemoteSyslogSender
       @timeout_exception   = !!options[:timeout_exception]
       @exponential_backoff = !!options[:exponential_backoff]
 
-      @connect_mutex = Mutex.new
+      @mutex = Mutex.new
       @tcp_socket = nil
 
       if [:SOL_SOCKET, :SO_KEEPALIVE, :IPPROTO_TCP, :TCP_KEEPIDLE].all? {|c| Socket.const_defined? c}
@@ -49,7 +49,7 @@ module RemoteSyslogSender
       connect_retry_count = 0
       connect_retry_limit = 3
       connect_retry_interval = 1
-      @connect_mutex.synchronize do
+      @mutex.synchronize do
         begin
           close
 
@@ -104,7 +104,7 @@ module RemoteSyslogSender
       until payload_size <= 0
         start = get_time
         begin
-          result = @socket.__send__(method, payload)
+          result = @mutex.synchronize { @socket.__send__(method, payload) }
           payload_size -= result
           payload.slice!(0, result) if payload_size > 0
         rescue IO::WaitReadable
