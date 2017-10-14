@@ -48,8 +48,11 @@ module RemoteSyslogSender
           packet.content = line
           send_msg(packet.assemble(@packet_size))
         rescue
-          $stderr.puts "#{self.class} error: #{$!.class}: #{$!}\nOriginal message: #{line}"
-          raise if @whinyerrors
+          if @whinyerrors
+            raise
+          else
+            $stderr.puts "#{self.class} error: #{$!.class}: #{$!}\nOriginal message: #{line}"
+          end
         end
       end
     end
