@@ -1,6 +1,6 @@
 # Remote Syslog Sender
 
-This gem is syslog sender that is extracted from (papertrail/remote_syslog_logger)[https://github.com/papertrail/remote_syslog_logger]
+This gem is syslog sender that is extracted from [papertrail/remote_syslog_logger](https://github.com/papertrail/remote_syslog_logger)
 
 This can send message to remote syslog server via UDP, TCP, TCP+TLS.
 (Original does not support TCP, TCP+TLS protocol).
