@@ -69,8 +69,10 @@ module RemoteSyslogSender
 
             @socket = OpenSSL::SSL::SSLSocket.new(@tcp_socket, context)
             @socket.connect
-            @socket.post_connection_check(@remote_hostname)
-            raise "verification error" if @socket.verify_result != OpenSSL::X509::V_OK
+            if @verify_mode != OpenSSL::SSL::VERIFY_NONE
+              @socket.post_connection_check(@remote_hostname)
+              raise "verification error" if @socket.verify_result != OpenSSL::X509::V_OK
+            end
           else
             @socket = @tcp_socket
           end
