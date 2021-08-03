@@ -1,3 +1,6 @@
 Gemfile.lock
 .bundle
 pkg
+
+.idea
+vendor
