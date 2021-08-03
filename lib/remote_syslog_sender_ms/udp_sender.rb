@@ -1,6 +1,6 @@
 require 'socket'
-require 'syslog_protocol'
-require 'remote_syslog_sender/sender'
+require 'syslog_protocol_ms'
+require 'remote_syslog_sender_ms/sender'
 
 module RemoteSyslogSender
   class UdpSender < Sender

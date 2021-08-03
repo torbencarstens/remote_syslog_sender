@@ -1,9 +1,9 @@
 
-require 'remote_syslog_sender/udp_sender'
-require 'remote_syslog_sender/tcp_sender'
+require 'remote_syslog_sender_ms/udp_sender'
+require 'remote_syslog_sender_ms/tcp_sender'
 
 module RemoteSyslogSender
-  VERSION = '1.0.3'
+  VERSION = '1.3.1'
 
   def self.new(remote_hostname, remote_port, options = {})
     protocol = options.delete(:protocol)

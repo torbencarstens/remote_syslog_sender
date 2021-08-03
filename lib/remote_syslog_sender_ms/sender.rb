@@ -1,5 +1,5 @@
 require 'socket'
-require 'syslog_protocol'
+require 'syslog_protocol_ms'
 
 module RemoteSyslogSender
   class Sender

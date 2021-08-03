@@ -1,5 +1,7 @@
 # Remote Syslog Sender
 
+Based on [reproio/remote_syslog_logger](https://github.com/reproio/remote_syslog_logger).
+
 This gem is syslog sender that is extracted from [papertrail/remote_syslog_logger](https://github.com/papertrail/remote_syslog_logger)
 
 This can send message to remote syslog server via UDP, TCP, TCP+TLS.
@@ -7,12 +9,12 @@ This can send message to remote syslog server via UDP, TCP, TCP+TLS.
 
 ## Installation
 
-The easiest way to install `remote_syslog_sender` is with Bundler. Add
-`remote_syslog_sender` to your `Gemfile`.
+The easiest way to install `remote_syslog_sender_ms` is with Bundler. Add
+`remote_syslog_sender_ms` to your `Gemfile`.
 
 If you are not using a `Gemfile`, run:
 
-    $ [sudo] gem install remote_syslog_sender
+    $ [sudo] gem install remote_syslog_sender_ms
 
 
 ## Usage
@@ -20,9 +22,8 @@ If you are not using a `Gemfile`, run:
 ```ruby
 sender = RemoteSyslogSender.new('syslog.domain.com', 514) # default protocol is UDP
 sender.transmit("message body")
-# or 
+# or
 sender.write("message body")
-
 
 ## TCP
 sender = RemoteSyslogSender.new('syslog.domain.com', 514, protocol: :tcp)
@@ -40,7 +41,7 @@ the system's syslog daemon is bound to `127.0.0.1`.
 ## Limitations
 
 If the specified host cannot be resolved, `syslog.domain.com` in the
-example under the usage section above, `remote_syslog_sender` will block
+example under the usage section above, `remote_syslog_sender_ms` will block
 for approximately 20 seconds before displaying an error.  This could
 result in the application failing to start or even stopping responding.
 
@@ -94,7 +95,7 @@ To remedy this, explicitly provide a `program` argument which is shorter than
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/reproio/remote_syslog_sender.
+Bug reports and pull requests are welcome on GitHub at https://github.com/torbencarstens/remote_syslog_sender_ms.
 
 
 ## License
