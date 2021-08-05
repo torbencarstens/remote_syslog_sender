@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
 
   s.authors  = ["Tomohiro Hashidate", "Eric Lindvall", "Torben Carstens"]
   s.email    = %w[kakyoin.hierophant@gmail.com rubygems@carstens.tech]
-  s.homepage = 'https://github.com/torbencarstens/remote_syslog_logger'
+  s.homepage = 'https://github.com/torbencarstens/remote_syslog_sender'
 
   s.files         = `git ls-files -z`.split("\x0")
   s.test_files    = s.files.grep(%r{^(test|spec|features)/})
