@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name              = 'remote_syslog_sender_ms'
-  s.version           = '1.3.1'
+  s.version           = '1.3.2'
   s.summary     = "Message sender that sends directly to a remote syslog endpoint"
   s.description = "Message sender that sends directly to a remote syslog endpoint (Support UDP, TCP, TCP+TLS)"
 
